@@ -1,0 +1,135 @@
+---
+title: "Final Project Memo"
+author: "Evan Bowman"
+date: "2022-10-18"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+bibliography: Memo.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+```
+
+# Introduction
+
+|    A major discussion in today's politics is the consequences of climate change and what is to come if no meaningful attempt at mitigating atmospheric greenhouse gasses occurs. These consequences, on a meta level, range from higher mean temperatures, sea level rise, and changes in the ability to grow sustainable food. These potential consequences poses large public health risks such as increases in heat related deaths and illness. This is cause for concern as about 25 percent of natural hazard mortality in the country is caused by heat exposure [@benz2021widespread]. Furthermore, heat-related mortality in the USA causes roughly 1,500 more deaths annually than other severe weather events, as well as other outcomes such as heat strokes, dehydration, loss of labor productivity, and decreased learning [@hsu2021disproportionate]. The potential increase in heat related health incidents requires a substantial need for policy to combat increases in mean temperatures. 
+
+|    Little discussion looks at the discrepancies these effects might have on urban populations. On the topic of increased global temperature averages, there is a need to look at the intersectionality of an already occurring phenomenon: urban heat island effects. This concept revolves around the key fact that urbanized city centers already create higher mean temperatures compared to their rural counterparts. Not only are these urban centers more likely to have higher mean temperatures than rural areas, there are clear sociodemographic discrepancies between populations within these cities. Few studies have been published analyzing these demographic discrepancies. However, in one report, research has found that roughly 77 percent of counties studied show that there are large differences in change of daytime temperature between census tracts with the highest and lowest Black population proportions. Furthermore, 81 percent of counties studied with lower difference in daytime temperature are majority non-Hispanic White. [@benz2021widespread]. These findings are important and should be analyzed for the District of Columbia to see if similar trends exist. 
+  
+|    There is also empirical evidence that shows discrepancies in urban heat island effects targeting communities that are more impoverished. For example, a 2020 study found that there is a negative correlation of .88 between cities' urban heat island effects and income [@chakraborty2020spatially]. This is further cause for concern when looking at potential correlations between poverty and race in city census tracts. This shows a clear need for social policy that protects majority minority census tracts from being disproportionately affected by increased heat island effects. 
+  
+
+# Research Questions
+
+**What are environmental metrics that are correlated with Urban Heat Island Effects?** What environmental characteristics of certain census tracts create larger heat exposure sensitivity indexes? Understanding the environmental factors would help in identifying policy approaches that would mitigate the probability of heat-induced health events. 
+
+**What are reoccurring sociodemographic trends that are associated with higher heat exposure sensitivity indexes?** Who are the communities are at a larger risk of heat-induced health events? Identifying sociodemographic trends can assist policy makers in identifying the communities who would best benefit from policy implementation. 
+
+# Heat Sensitivity Data from Open Data DC
+  
+|    The data for this study will be sourced from the D.C. government's open data website. This data is already clean and requires no specific packages for analysis. 
+```{r, include=FALSE}
+heat <- read_csv("../Heat_Sensitivity_Exposure_Index.csv", show_col_types = F)
+```
+
+The dataset contains some identification variables that are associated with the census tract that the data corresponds to, as well some administrative variable columns . Below is a modified data frame eliminating some of these variables for analysis and easier viewing.
+```{r}
+heat <- heat %>%
+  select(TRACT, TOTALPOP:OBESITY, P_TREECOVER:AIRTEMP_MEAN, HSEI)
+tibble(heat)
+```
+
+As seen from the tibble above, there are **16 variables of interest** for the **206 DC census tracts**. The data set consists of sociodemographic variables such as proportions of minority, child, elderly, poverty, disability, and limited English for each census tract that will be key for our second research question. The data also contains a few health variables such as prevalence of asthma, congenital heart disease, and obesity that could help with the analysis of certain demographics and heat index values. 
+
+There are also environmental variables found within the data frame including percent tree cover, percent of tract with no trees, percent of tract with impervious surfaces, and mean ambient air temperature (degrees Celsius). There are three index variables, heat sensitivity index (HSI), heat exposure index (HEI), and heat sensitivity exposure index (HSEI). HEI is calculated by 50% Air Temp, 25% lack of tree canopy, 25% impervious surface and HSEI is calculated by 50% HSI, 50% HEI. We will not include HSI or HEI due to the covariation with HSEI. For our first research question, we will use the HSEI as the dependent variable. 
+
+# Initial Exploratory Data Analysis
+
+Initial EDA will mainly revolve around our second research question regarding demographic trends. Analysis regarding our first question, environmental factors, will come at a later date. 
+
+Below is the distribution of HSEI values for 203 census tracts. Three tracts were filtered out because of no reported HSEI values. The distribution is skewed heavily to the left, with a mean appearing to be hovering around the .45 mark. Further EDA below will explore the correlations between different demographic factors and HSEI values. 
+```{r}
+heat %>%
+  filter(HSEI > 0 & HSEI < 1) %>%
+  ggplot(aes(HSEI)) +
+  geom_histogram() +
+  ggtitle("Distribution of HSEI for DC Census Tracts") +
+  xlab("Heat Sensitivity Index Exposure (HSEI)") + 
+  labs(caption = "Data from Open Data DC") +
+  theme_bw()
+```
+
+As shown by the graph below, there seems to be a clear positive correlation the percentage minority population in a given census tract and its HSEI value. This is further supported by the boxplot of HSEI values comparing majority minority tracts versus majority White tracts.
+
+```{r}
+scatter <- heat %>%
+  filter(HSEI > 0 & HSEI <1) %>%
+  ggplot(aes(HSEI, P_POC)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  ggtitle("Heat Sensitivity Index vs. Percent People of Color") +
+  xlab("Heat Sensitivity Index (HSEI)") +
+  ylab("% People of Color (P_POC)") +
+  labs(caption = "Data from Open Data DC") +
+  theme_bw()
+
+box <- heat %>%
+  filter(HSEI > 0) %>%
+  ggplot(aes(P_POC, HSEI)) +
+  geom_boxplot(aes(group = cut_interval(P_POC, length = 50))) +
+  ggtitle("HSEI of % POC Tracts") +
+  xlab("% People of Color (P_POC)") +
+  ylab("Heat Sensitivity Exposure Index (HSEI)") +
+  labs(caption = "Data from Open Data DC") +
+  theme_bw()
+
+gridExtra::grid.arrange(scatter, box, ncol = 2, widths = 2:1)
+```
+
+The next analysis to be conducted is looking at poverty and its correlation with HSEI values. The scatter plot shows a positive correlation between the two variables. There appears to be a linear increase that flattens off at about 35 percent poverty. Further analysis will need to be done to look at the exact correlation between the two variables.  
+```{r}
+heat %>%
+  filter(HSEI > 0) %>%
+  ggplot(aes(P_POVERTY, HSEI)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  ggtitle("Heat Sensitivity Exposure Index vs Percent Poverty") +
+  xlab("Percent Poverty (P_POVERTY)") +
+  ylab("Heat Sensitivity Exposure Index (HSEI)") +
+  labs(caption = "Data from Open Data DC") +
+  theme_bw()
+```
+
+Nonetheless, the next step is to look at the relationship between percent poverty and percent people of color to see if there is any correlation between the two variables. 
+```{r}
+heat %>%
+  ggplot(aes(P_POC, P_POVERTY)) +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  ggtitle("% Poverty vs. % People of Color") +
+  xlab("% People of Color (P_POC)") +
+  ylab("% Poverty (P_POVERTY)") +
+  labs(caption = "Data from Open Data DC") +
+  theme_bw()
+```
+
+The scatter plot above highlights a positive correlation between percentage minority residents and percent poverty. The regression line shows an interesting trend. It appears the magnitude of correlation is relatively minimal until tracts with about 80 percent POC population. There is also an interesting potential outlier of 100 percent poverty. Upon investigation below, this tract only includes Catholic University students, which explains the high poverty percentage. 
+```{r}
+filter(heat, P_POVERTY > 90)
+```
+
+# Next Steps for Analysis
+
+The next step in this analysis is to begin modeling the correlates of mean air temperature. This was not included in the initial analysis due to the need for more thoughtful mapping. There are very limited environmental variables found in the data set with two having high covariation (percent tree cover and percent no tree). This will lead to using different methods to achieve an accurate model. More likely than not, shrinkage methods (i.e. ridge regression or LASSO regression) will have to be used to mitigate the covariation. 
+
+The end goal of this project is to be able to make grounded policy recommendations on how to mitigate the public health risk of heat exposure. To do this, there are two distinct aspects that must occur for this to happen. First, we must identify strong correlates of mean air temp to better understand what environmental factors lead to higher mean air temperature for census tracts. Second, we must find demographic patterns that are associated with mean ambient temperatures and heat sensitivity exposure indexes. These identifications will allow us to recommend what vulnerable communities should be targeted for policy implementation. 
+\newpage
+
+# **References**
