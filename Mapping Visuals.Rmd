@@ -1,0 +1,103 @@
+---
+title: "Final Project Maps"
+author: "Evan Bowman"
+date: "2022-11-09"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressMessages(library(tidyverse))
+library(sf)
+```
+
+# Data Loading
+```{r}
+hsei <- read_csv("data/Heat_Sensitivity_Exposure_Index.csv", show_col_types = F)
+tracts <- read_sf("data/Census_Tracts_in_2020")
+```
+
+Getting geometry variable from DC Census Data
+```{r}
+library(tidycensus)
+library(keyring)
+key_set("API_KEY_CENSUS")
+census_key <- key_get("API_KEY_CENSUS")
+```
+
+```{r}
+dc_median <- get_acs(state = "DC", county = "District of Columbia",
+                     geography = "tract",
+                     variables = "B19013_001",
+                     geometry = TRUE,
+                     key = Sys.getenv("API_KEY_CENSUS"))
+glimpse(dc_median)
+```
+# Joining Census Data to Obtain Geometry variable
+```{r}
+hsei_medianHouse <- left_join(hsei, dc_median, by = c("NAME" = "NAME"))
+```
+
+#Visualizations 
+
+## Percent Poverty by Census Tract
+```{r}
+hsei_medianHouse %>%
+ggplot(aes(fill = P_POVERTY)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c()
+```
+
+## HSEI Levels by Census Tract
+```{r}
+hsei_medianHouse %>%
+  filter(HSEI > 0) %>%
+ggplot(aes(fill = HSEI)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c()
+```
+
+# Median Household Income by Tract
+```{r}
+hsei_medianHouse %>%
+ggplot(aes(fill = estimate)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c()
+```
+
+# Visualizing Interactive Maps with Leaflet
+
+## Data Loading
+```{r}
+tracts <- read_sf("data/Census_Tracts_in_2020")
+
+tracts_clean <- tracts %>% 
+  st_transform(4326)
+```
+
+```{r}
+library(leaflet)
+```
+
+```{r}
+bins <- c(0, 10, 20, 50, 100, 200, 500, 1000, Inf)
+pal <- colorBin("YlOrRd", domain = hsei_medianHouse$P_POVERTY, bins = bins)
+```
+
+```{r}
+leaflet() %>% 
+  addTiles() %>% 
+  addPolygons(data = tracts_clean,
+              color = 'white',
+              weight = 1.5,
+              opacity = 1,
+              fillColor = "#e8e8e8",
+              fillOpacity = .8,
+              highlightOptions = highlightOptions(color = "#FFF1BE",
+                                                  weight = 5),
+              popup = ~c(tracts_clean$TRACT, hsei_medianHouse$P_POVERTY))
+```
+
