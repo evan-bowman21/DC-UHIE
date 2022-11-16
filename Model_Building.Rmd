@@ -1,0 +1,147 @@
+---
+title: "Model Building"
+author: "Evan Bowman"
+date: "2022-11-16"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+suppressMessages(library(tidyverse))
+```
+
+# HSI Model 
+## Data Loading and Selection
+```{r}
+# Loading in Data
+hsei <- read_csv("data/Heat_Sensitivity_Exposure_Index.csv", show_col_types = F)
+hsei$P_LIMENG = as.double(hsei$P_LIMENG)
+
+# Isolating Socio Demographic Varibles and HSI
+hsi_model <- hsei %>%
+  select(P_POC:HSI)
+```
+
+## Linear Model Fitting using best Subset Regression
+```{r}
+library(leaps)
+```
+
+```{r}
+# Initial Model Fitting
+regFull <- regsubsets(HSI~ ., hsi_model)
+summary(regFull)
+
+
+# Regression Summary Plots
+par(mfrow=c(1,1))
+plot(regFull, scale = "r2")
+plot(regFull, scale = "adjr2")
+plot(regFull, scale = "Cp")
+plot(regFull, scale = "bic")
+
+summary(regFull)$adjr2  
+summary(regFull)$cp  
+summary(regFull)$bic  
+
+# Identifying best values
+which.max(summary(regFull)$adjr2)
+which.min(summary(regFull)$cp) 
+which.min(summary(regFull)$bic) 
+```
+
+From this initial best subsets method, model 5 returns the highest r2 value, lowest CP value, and is very close to the lowest BIC value. 
+
+## Forward Stepwise
+```{r}
+# Stepwise Fitting
+regfit.fwd <- regsubsets(HSI ~ ., data = hsi_model, method = "forward")
+summary(regfit.fwd)
+
+# Summary Plots
+par(mfrow=c(1,1))
+plot(regfit.fwd, scale = "r2")
+plot(regfit.fwd, scale = "adjr2")
+plot(regfit.fwd, scale = "Cp")
+plot(regfit.fwd, scale = "bic")
+
+summary(regfit.fwd)$adjr2  
+summary(regfit.fwd)$cp  
+summary(regfit.fwd)$bic  
+
+# Identifying best values
+which.max(summary(regfit.fwd)$adjr2)
+which.min(summary(regfit.fwd)$cp) 
+which.min(summary(regfit.fwd)$bic) 
+```
+
+From this initial forwards stepwise method, model 5 returns the highest r2 value, lowest CP value, and is very close to the lowest BIC value. 
+
+## Backwards Stepwise
+```{r}
+# Backwards Fitting
+regfit.bwd <- regsubsets(HSI ~ ., data = hsi_model, method = "backward")
+summary(regfit.bwd)
+
+# Summary Plots
+par(mfrow=c(1,1))
+plot(regfit.bwd, scale = "r2")
+plot(regfit.bwd, scale = "adjr2")
+plot(regfit.bwd, scale = "Cp")
+plot(regfit.bwd, scale = "bic")
+
+summary(regfit.bwd)$adjr2  
+summary(regfit.bwd)$cp  
+summary(regfit.bwd)$bic  
+
+# Identifying best values
+which.max(summary(regfit.bwd)$adjr2)
+which.min(summary(regfit.bwd)$cp) 
+which.min(summary(regfit.bwd)$bic) 
+```
+
+From this initial backwards stepwise method, model 5 returns the highest r2 value, lowest CP value, and is very close to the lowest BIC value. 
+
+## Cross Validation of Models
+```{r}
+# Creating Validation Set
+set.seed(1)
+train <- sample(c(TRUE, FALSE), nrow(hsi_model),replace = TRUE)
+val <- (!train)
+```
+
+```{r}
+# Applying Best Subset Models to Training Data
+regfit.best <- regsubsets(HSI ~ ., data = hsi_model[train, ])
+```
+
+# Compute the validation set error for the best model of each model size.
+```{r}
+# Compute the validation set error for the best model of each model size.
+val.mat <- model.matrix(HSI ~ ., data = hsi_model[val, ], nvmax = 9) # This a model matrix from the validation data.
+head(val.mat)
+val.errors <- rep(NA, 9) # there are 9 variables and we will look at a model of each size (i.e num vars)
+
+for (i in 1:9) {
+ coefi <- coef(regfit.best, id = i) # get coef from the best model of size i
+ pred <- val.mat[, names(coefi)] %*% coefi # predicted values = Xt*beta 
+ val.errors[i] <- mean((hsi_model$HSI[val] - pred)^2) # MSE (validation observed y - yhat)^2
+}
+
+data.frame(val.errors,numvars=1:9)
+plot(1:9,val.errors,xlab='num vars',ylab='CV errors',main='CV errors vs. num vars',pch=19,type='b')
+which.min(val.errors)
+coef(regfit.best,id=which.min(val.errors))
+```
+
+# Finally, we perform best subset selection on the full data set, and select the best seven-variable model.
+# We use the full data to obtain more accurate coefficient estimates.  Note that we perform best subsets
+# selection on the full data set and select the best seven-variable model, rather than simply using
+# the variables that were obtained from the training set. This is because the best seven-variable model
+# on the full data may (and here it does) differe from the corresponding model on the training data.
+
+regfit.best <- regsubsets(Salary ~ ., data = Hitters, nvmax = 19)
+coef(regfit.best,7)
+```
+
