@@ -98,6 +98,6 @@ leaflet() %>%
               fillOpacity = .8,
               highlightOptions = highlightOptions(color = "#FFF1BE",
                                                   weight = 5),
-              popup = ~c(tracts_clean$TRACT, hsei_medianHouse$P_POVERTY))
+              popup = ~ tracts_clean$NAME)
 ```
 
