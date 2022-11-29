@@ -1,0 +1,15 @@
+---
+title: "Correlates and Policy Remedies of DC's Urban Heat Island Effect"
+author: "Evan Bowman"
+date: "'r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+bibliography: Memo.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
