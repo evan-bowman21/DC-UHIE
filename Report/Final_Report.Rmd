@@ -18,6 +18,8 @@ library(tidyverse)
 library(sf)
 library(tidycensus)
 library(keyring)
+library(broom)
+library(leaps)
 
 heat <- read_csv("../data/Heat_Sensitivity_Exposure_Index.csv", show_col_types = F)
 
@@ -57,7 +59,108 @@ ggplot(aes(fill = HSI)) +
   labs(caption = "Fig. 1")
 ```
 
-As seen from the Figure 1, the census tracts with the highest HSI levels fall within areas along the Anacostia River, also found within Wards 7 and 8. These census tracts are a vast contrast when compared to census tracts with low HSI levels found in the Northwest portion of the city. 
+As seen from the Figure 1, the census tracts with the highest HSI levels fall within areas along the Anacostia River, also found within Wards 7 and 8. These census tracts are a vast contrast when compared to census tracts with low HSI levels found in the Northwest portion of the city. Analysis conducted in this section will look to define what specific patterns exist within tracts with high HSI levels. 
+
+## Regression Definition
+
+To best understand what socioeconomic factors are most correlated with HSI levels, preliminary regression models will be created to identify variables of statistical significance. To achieve the best possible model, best subsets regression, forward stepwise, and backward stepwise will be conducted and the best model will be taken following the analysis of adjusted r-squared, Mallows CP, and BIC.
+
+The first model will be utilizing the best subsets regression strategy through the leaps package. The model was fitted and summary statistics are presented in the table below
+```{r, include=FALSE}
+hsi_model <- heat_full %>%
+  select(P_POC:HSI)
+hsi_model$P_LIMENG = as.numeric(hsi_model$P_LIMENG)
+regFull <- regsubsets(HSI~ ., hsi_model)
+summary(regFull)
+
+
+# Regression Summary Plots
+par(mfrow=c(1,1))
+plot(regFull, scale = "r2")
+plot(regFull, scale = "adjr2")
+plot(regFull, scale = "Cp")
+plot(regFull, scale = "bic")
+
+adjr2_bs <- summary(regFull)$adjr2
+cp_bs <- summary(regFull)$cp  
+bic_bs <- summary(regFull)$bic  
+
+
+# Identifying best values
+which.max(summary(regFull)$adjr2)
+which.min(summary(regFull)$cp) 
+which.min(summary(regFull)$bic) 
+```
+
+```{r, echo=FALSE}
+bs_table <- data.frame(model = c(1:8),
+          adjr2 = adjr2_bs, 
+           cp = cp_bs,
+           bic = bic_bs)
+knitr::kable(bs_table, caption = "Best Subsets Regression")
+```
+
+Model 5 returned the highest adjusted r-squared value, lowest Mallow's Cp value, and second lowest BIC value. This shows that the model captures the highest variation in HSI, the best predicting power for all possible models, and the second lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the same results as shown. 
+
+
+```{r, include=FALSE}
+# Stepwise Fitting
+regfit.fwd <- regsubsets(HSI ~ ., data = hsi_model, method = "forward")
+summary(regfit.fwd)
+
+# Summary Plots
+par(mfrow=c(1,1))
+plot(regfit.fwd, scale = "r2")
+plot(regfit.fwd, scale = "adjr2")
+plot(regfit.fwd, scale = "Cp")
+plot(regfit.fwd, scale = "bic")
+
+adjr2_fs <- summary(regfit.fwd)$adjr2  
+cp_fs <- summary(regfit.fwd)$cp  
+bic_fs <- summary(regfit.fwd)$bic  
+
+# Identifying best values
+which.max(summary(regfit.fwd)$adjr2)
+which.min(summary(regfit.fwd)$cp) 
+which.min(summary(regfit.fwd)$bic) 
+
+# Backwards Fitting
+regfit.bwd <- regsubsets(HSI ~ ., data = hsi_model, method = "backward")
+summary(regfit.bwd)
+
+# Summary Plots
+par(mfrow=c(1,1))
+plot(regfit.bwd, scale = "r2")
+plot(regfit.bwd, scale = "adjr2")
+plot(regfit.bwd, scale = "Cp")
+plot(regfit.bwd, scale = "bic")
+
+adjr2_bstep <- summary(regfit.bwd)$adjr2  
+cp_bstep <- summary(regfit.bwd)$cp  
+bic_bstep <- summary(regfit.bwd)$bic  
+
+# Identifying best values
+which.max(summary(regfit.bwd)$adjr2)
+which.min(summary(regfit.bwd)$cp) 
+which.min(summary(regfit.bwd)$bic) 
+```
+
+```{r, echo=FALSE}
+fs_table <- data.frame(model = c(1:8),
+          adjr2 = adjr2_fs, 
+           cp = cp_fs,
+           bic = bic_fs)
+
+bstep_table <- data.frame(model = c(1:8),
+          adjr2 = adjr2_bstep, 
+           cp = cp_bstep,
+           bic = bic_bstep)
+
+knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwise")
+```
+
+
+## Percent People of Color
 Having defined HSI as a metric that explains an individual's ability to adapt, cope, or recover from extreme heat, it is important to understand what specific demographic patterns exist that correlate with census tracts' HSI measurements. There is a clear trend of tracts with higher minority populations to have more adverse abilities to cope with intense heat (Fig. 2). Grouping the data based on majority minority census tracts further exemplifies this finding while also highlighting the magnitude of the difference (Fig. 3). 
 ```{r, echo=FALSE, message=FALSE}
 heat_full %>%
