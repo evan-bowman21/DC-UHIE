@@ -65,13 +65,13 @@ As seen from the Figure 1, the census tracts with the highest HSI levels fall wi
 
 To best understand what socioeconomic factors are most correlated with HSI levels, preliminary regression models will be created to identify variables of statistical significance. To achieve the best possible model, best subsets regression, forward stepwise, and backward stepwise will be conducted and the best model will be taken following the analysis of adjusted r-squared, Mallows CP, and BIC.
 
-The first model will be utilizing the best subsets regression strategy through the leaps package. The model was fitted and summary statistics are presented in the table below
+The first model will be utilizing the best subsets regression strategy through the leaps package. The model was fitted and the best eight models are shown below. Summary statistics of each model will be analyzed to figure which model will be chosen (Table 1).
 ```{r, include=FALSE}
 hsi_model <- heat_full %>%
   select(P_POC:HSI)
 hsi_model$P_LIMENG = as.numeric(hsi_model$P_LIMENG)
 regFull <- regsubsets(HSI~ ., hsi_model)
-summary(regFull)
+model_sum <- summary(regFull)
 
 
 # Regression Summary Plots
@@ -93,6 +93,7 @@ which.min(summary(regFull)$bic)
 ```
 
 ```{r, echo=FALSE}
+summary(regFull)
 bs_table <- data.frame(model = c(1:8),
           adjr2 = adjr2_bs, 
            cp = cp_bs,
@@ -100,7 +101,7 @@ bs_table <- data.frame(model = c(1:8),
 knitr::kable(bs_table, caption = "Best Subsets Regression")
 ```
 
-Model 5 returned the highest adjusted r-squared value, lowest Mallow's Cp value, and second lowest BIC value. This shows that the model captures the highest variation in HSI, the best predicting power for all possible models, and the second lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the same results as shown. 
+Model 5 returned the highest adjusted r-squared value, lowest Mallow's Cp value, and second lowest BIC value. This shows that the model captures the highest variation in HSI, the best predicting power for all possible models, and the second lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the same results (Table 3). 
 
 
 ```{r, include=FALSE}
@@ -159,21 +160,10 @@ bstep_table <- data.frame(model = c(1:8),
 knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwise")
 ```
 
+With an early model built, this study will transition to analyze these five predictors of HSI and patterns of them throughout the city.   
 
 ## Percent People of Color
-Having defined HSI as a metric that explains an individual's ability to adapt, cope, or recover from extreme heat, it is important to understand what specific demographic patterns exist that correlate with census tracts' HSI measurements. There is a clear trend of tracts with higher minority populations to have more adverse abilities to cope with intense heat (Fig. 2). Grouping the data based on majority minority census tracts further exemplifies this finding while also highlighting the magnitude of the difference (Fig. 3). 
-```{r, echo=FALSE, message=FALSE}
-heat_full %>%
-  filter(HSEI > 0 & HSEI <1) %>%
-  ggplot(aes(P_POC, HSI)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  ggtitle("Heat Sensitivity Index vs. Percent People of Color") +
-  ylab("Heat Sensitivity Index (HSI)") +
-  xlab("% People of Color (P_POC)") +
-  labs(caption = "Fig. 2") +
-  theme_bw()
-```
+Having defined HSI as a metric that explains an individual's ability to adapt, cope, or recover from extreme heat, it is important to understand what specific demographic patterns exist that correlate with census tracts' HSI measurements. There is a clear trend of tracts with higher minority populations to have more adverse abilities to cope with intense heat (Fig. 2).
 
 ```{r, echo=FALSE, message=FALSE}
 heat_full %>%
@@ -183,7 +173,7 @@ heat_full %>%
   ggtitle("HSI of % POC Tracts") +
   xlab("% People of Color (P_POC)") +
   ylab("Heat Sensitivity Index (HSI)") +
-  labs(caption = "Fig. 3") +
+  labs(caption = "Fig. 2") +
   theme_bw()
 
 ```
