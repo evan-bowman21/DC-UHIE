@@ -30,6 +30,10 @@ dc_median <- get_acs(state = "DC", county = "District of Columbia",
                      key = key_get("API_KEY_CENSUS"))
 
 heat_full <- left_join(heat, dc_median, by = c("NAME" = "NAME"))
+
+heat_full <- heat_full %>%
+  mutate(majority_minority = case_when(P_POC >= 50 ~ "TRUE",
+                                       TRUE ~ "FALSE"))
 ```
 
 # Introduction
@@ -61,9 +65,78 @@ ggplot(aes(fill = HSI)) +
 
 As seen from the Figure 1, the census tracts with the highest HSI levels fall within areas along the Anacostia River, also found within Wards 7 and 8. These census tracts are a vast contrast when compared to census tracts with low HSI levels found in the Northwest portion of the city. Analysis conducted in this section will look to define what specific patterns exist within tracts with high HSI levels. 
 
+## Visualizing Patterns
+
+Areas along the Anacostia River are typically known for being predominately majority minority as well as lower income compared to census tracts in the Northwest. This further contributes to the hypothesis of racial inequity in DC's Urban Heat Island Effect as the intersectionality of poverty and race exacerbates indibiduals ability to cope with extreme heat (Fig. 2).  
+
+
+```{r, echo=FALSE}
+poc_map <- heat_full %>%
+  filter(HSI > 0) %>%
+ggplot(aes(fill = P_POC)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c() +
+    ggtitle("% People of Color of Census Tracts") +
+  theme_bw()
+
+pov_map <- heat_full %>%
+  filter(HSI > 0) %>%
+ggplot(aes(fill = P_POVERTY)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c() +
+    ggtitle("% Poverty of Census Tracts") +
+  theme_bw()
+
+gridExtra::grid.arrange(poc_map, pov_map, ncol = 2, right = "Fig. 2")
+```
+
+Other interesting patterns found within the data are health trends and specific discrepancies between predominately non-Hispanic White census tracts and predominately Black census tracts. For all four health variables found within the data set, asthma, obesity, coronary heart disease (CHD), and disability, majority minority census tracts exhibit higher prevalence than predominately White tracts (Fig. 3). This highlights the increased risk of health related events that are exacerbated by a higher sensitivity to heat and the inability to cope or adapt to it.     
+
+```{r, echo=FALSE}
+asthma <- heat_full %>%
+  filter(HSI > 0) %>%
+  ggplot(aes(majority_minority, ASTHMA)) +
+  geom_boxplot() +
+  ggtitle("Asthma") +
+  xlab("Majority Minority") +
+  ylab("Asthma") + 
+  theme_bw()
+
+obesity <- heat_full %>%
+  filter(HSI > 0) %>%
+  ggplot(aes(majority_minority, OBESITY)) +
+  geom_boxplot() +
+  ggtitle("Obesity") +
+  xlab("Majority Minority") +
+  ylab("Obesity") +
+  theme_bw()
+
+chd <- heat_full %>%
+  filter(HSI > 0) %>%
+  ggplot(aes(majority_minority, CHD)) +
+  geom_boxplot() +
+  ggtitle("CHD") +
+  xlab("Majority Minority") +
+  ylab("CHD") +
+  theme_bw()
+
+disability <- heat_full %>%
+  filter(HSI > 0) %>%
+  ggplot(aes(majority_minority, P_DISABILITY)) +
+  geom_boxplot() +
+  ggtitle("Disability") +
+  xlab("Majority Minority") +
+  ylab("Disability") +
+  theme_bw()
+
+gridExtra::grid.arrange(asthma, obesity, chd, disability, ncol = 2, right = "Fig. 3")
+```
+
+With preliminary patterns relating to a census tract's Heat Sensitivity Index established, this paper will shift to creating a preliminary model that best exemplifies which variables contribute most to HSI metrics for a given census tract.  
+
 ## Regression Definition
 
-To best understand what socioeconomic factors are most correlated with HSI levels, preliminary regression models will be created to identify variables of statistical significance. To achieve the best possible model, best subsets regression, forward stepwise, and backward stepwise will be conducted and the best model will be taken following the analysis of adjusted r-squared, Mallows CP, and BIC.
+To best understand to what magnitude socioeconomic factors affect HSI levels, preliminary regression models will be created to identify variables of statistical significance. To achieve the best possible model, best subsets regression, forward stepwise, and backward stepwise will be conducted and the best model will be taken following the analysis of adjusted r-squared, Mallows CP, and BIC.
 
 The first model will be utilizing the best subsets regression strategy through the leaps package. The model was fitted and the best eight models are shown below. Summary statistics of each model will be analyzed to figure which model will be chosen (Table 1).
 ```{r, include=FALSE}
@@ -161,24 +234,6 @@ knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwi
 ```
 
 With an early model built, this study will transition to analyze these five predictors of HSI and patterns of them throughout the city.   
-
-## Percent People of Color
-Having defined HSI as a metric that explains an individual's ability to adapt, cope, or recover from extreme heat, it is important to understand what specific demographic patterns exist that correlate with census tracts' HSI measurements. There is a clear trend of tracts with higher minority populations to have more adverse abilities to cope with intense heat (Fig. 2).
-
-```{r, echo=FALSE, message=FALSE}
-heat_full %>%
-  filter(HSEI > 0) %>%
-  ggplot(aes(P_POC, HSI)) +
-  geom_boxplot(aes(group = cut_interval(P_POC, length = 50))) +
-  ggtitle("HSI of % POC Tracts") +
-  xlab("% People of Color (P_POC)") +
-  ylab("Heat Sensitivity Index (HSI)") +
-  labs(caption = "Fig. 2") +
-  theme_bw()
-
-```
-
-
 
 \newpage
 # **References**
