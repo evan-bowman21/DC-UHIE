@@ -1,5 +1,5 @@
 ---
-title: "Correlates and Policy Remedies of DC's Urban Heat Island Effect"
+title: "Correlates and Policy Recommendations of DC's Urban Heat Island Effect"
 author: "Evan Bowman"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
@@ -67,7 +67,7 @@ As seen from the Figure 1, the census tracts with the highest HSI levels fall wi
 
 ## Visualizing Patterns
 
-Areas along the Anacostia River are typically known for being predominately majority minority as well as lower income compared to census tracts in the Northwest. This further contributes to the hypothesis of racial inequity in DC's Urban Heat Island Effect as the intersectionality of poverty and race exacerbates indibiduals ability to cope with extreme heat (Fig. 2).  
+Areas along the Anacostia River are typically known for being predominately majority minority as well as lower income compared to census tracts in the Northwest. This further contributes to the hypothesis of racial inequity in DC's Urban Heat Island Effect as the intersectionality of poverty and race exacerbates individuals ability to cope with extreme heat (Fig. 2).  
 
 
 ```{r, echo=FALSE}
@@ -261,7 +261,7 @@ out_preds <- bind_cols(hsi_test %>% select(HSI),
 ```
 
 
-## Shrinkage Regression
+### Shrinkage Regression
 
 While best subsets regression identified the best model as including five variables, there is clear covariation that affects the magnitude of the coefficients (Appendix A). As a result, a LASSO regression model will be fitted and compared to the original regression model. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. 
 ```{r, echo=FALSE}
@@ -279,7 +279,7 @@ full_preds <- bind_cols(out_preds,
 
 # Environmental Factors of Heat Exposure Indexes
 
-It is important to understand not only socioeconomic factors that contribute to a census tract's HSI statistic, but also the environmental factors that contribute to their Heat Exposure Index. However, unlike HSI, HEI is defined in for each census tract as 50 percent mean air temperature, 25 percent lack of tree canopy, and 25 percent impervious surface. As a result, analysis will be centered around patterns of three variables as opposed to any model building to predict HEI values. 
+It is important to understand not only socioeconomic factors that contribute to a census tract's HSI statistic, but also the environmental factors that contribute to their Heat Exposure Index. However, unlike HSI, HEI is defined in for each census tract as 50 percent mean air temperature, 25 percent lack of tree canopy, and 25 percent impervious surface. As a result, analysis will be centered around patterns of the three variables as opposed to any model building to predict HEI values. 
 
 ```{r, include = FALSE}
 hei <- heat_full %>% 
@@ -318,6 +318,8 @@ ggplot(aes(fill = P_NOTREE)) +
 gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2)
 ```
 
+As shown by the maps above, there are fewer patterns in discrepancies between environmental factors and census tracts compared to that of the HSI data. Predominately Black census tracts are disproportionately affected by any of the environmental variables (Fig. 7). These maps highlight areas such as downtown being at the highest risk of heat exposure. This makes intuitive sense as this is the city center of DC which includes high amounts of impervious surface and lacks cooling characteristics such as large parks or trees. When compared to areas of interest in the HSI section, census tracts that were poorer and majority minority are relatively similar to more White Census tracts. However, given the urban nature of the city, proportions of census tracts that are impervious surfaces and the lack of tree cover is a cause for concern given the socioeconomic patterns discussed previously. This creates the need for both environmental and social policy to adequately mitigate the risk of heat induced health incidents. 
+
 
 ```{r, echo=FALSE}
 tree <- heat_full %>%
@@ -343,25 +345,26 @@ imp_surf <- tree <- heat_full %>%
 gridExtra::grid.arrange(tree, no_tree, temp, imp_surf, ncol = 2, right = "Fig. 8")
 ```
 
-```{r, echo=FALSE}
-heat_full %>%
-ggplot() +
-    geom_sf(aes(geometry = geometry), color = NA) +
-  geom_point(data = cooling_clean, aes(lat, lon)) +
-  xlab("") +
-  ylab("") +
-  ggtitle("DC Cooling Centers") +
-  theme_bw()
-```
+# Potential Policy Recommendations
 
+## Environmental Policy Recomendations
+
+Policy recommendations revolving around mitigating mean air temperature of census tracts is centered around both impervious surfaces and tree canopy cover. Both of these factors are main contributes of heat retention due to the inability to deflect solar rays. Advancing infrastructure improvements such as cool roofs or cool pavements is key in reducing mean air temperature. Infrastructure projects such as these would need to prioritize census tracts that are majority minority or poor. These areas are at most need of infrastructure improvements already and would benefit far more than other tracts due to their increased sensitivity to heat. 
+
+## Social Policy Recomendations
+
+Policy recommendations relating to socioeconomic factors must center around enabling individuals in census tracts with high HSI metrics to be able to adapt and cope to instances of extreme heat. One clear avenue is to strengthen DC's Heat Emergency Plan (HEP) which opens resources when temperature exceed 90 degrees Fahrenheit. These resources are deemed cooling centers and range from pools, libraries, shelters, etc. (Fig. 8) located across the city (Appendix 2). However, the city must be able to give clear and concise information regarding where these centers are located and the hours they are open. Furthermore, the city must be able to offer more cooling centers that are accessible during non-business hours. As of right now, the city only advertises four options that are open 24/7 in cases of extreme heat. While temperatures do decrease during the night hours, individuals with low heat tolerance are still at adverse risk of heat induced instances. Opening more accessible cooling centers in census tracts with high HSI will drastically reduce the possibility of heat induced health incidents.    
+
+# Get Help On This
 ```{r, echo=FALSE}
 cooling <- read_csv("../data/Cooling_Centers_-_District_of_Columbia.csv", show_col_types = F)
 
 cooling_clean <- cooling %>%
   rename(lat = X,
          lon = Y,
-         type = TYPE_) %>%
-  select(lat, lon, type)
+         type = TYPE_,
+         hours = Hours3) %>%
+  select(lat, lon, type, hours)
 cooling_clean$type = as.factor(cooling_clean$type)
 
 cooling_type <- count(cooling_clean, type) %>%
@@ -373,8 +376,22 @@ ggplot(cooling_type, aes(reorder(type, n, max), n)) +
   ggtitle("Counts of DC Cooling Centers") +
   xlab("Cooling Center") +
   ylab("Count") +
+  labs(caption = "Fig. ?") +
   theme_bw()
 
+
+
+# full_hours <- cooling_clean %>%
+#   filter(str_detect(.$hours, "24"))
+# 
+# heat_full %>%
+#   filter(HSI > 0) %>%
+# ggplot(aes(fill = HSI)) +
+#     geom_sf(aes(geometry = geometry), color = NA) +
+#     # geom_point(data = full_hours, aes(lat, lon)) +
+#     scale_fill_viridis_c() +
+#     ggtitle("HSI") +
+#   theme_bw()
 ```
 
 
@@ -390,6 +407,17 @@ cor_table <- hsi_model %>%
 knitr::kable(cor_table, caption = "Correlation table of HSI variables")
 ```
 
+```{r, echo=FALSE, out.height="50%", out.width="50%"}
+heat_full %>%
+ggplot() +
+    geom_sf(aes(geometry = geometry), color = NA) +
+  geom_point(data = cooling_clean, aes(lat, lon)) +
+  xlab("") +
+  ylab("") +
+  ggtitle("DC Cooling Centers") +
+  theme_bw() +
+  labs(caption = "Appendix Fig. 1")
+```
 \newpage
-# **References**
+**References**
 
