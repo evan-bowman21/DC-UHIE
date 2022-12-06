@@ -54,7 +54,7 @@ These findings are consistent with research that shows majority minority populat
 
 # Heat Sensitivity Index and Socioeconomic Patterns
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 heat_full %>%
   filter(HSI > 0) %>%
 ggplot(aes(fill = HSI)) +
@@ -70,7 +70,7 @@ As seen from the Figure 1, the census tracts with the highest HSI levels fall wi
 Areas along the Anacostia River are typically known for being predominately majority minority as well as lower income compared to census tracts in the Northwest. This further contributes to the hypothesis of racial inequity in DC's Urban Heat Island Effect as the intersectionality of poverty and race exacerbates individuals ability to cope with extreme heat (Fig. 2).  
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 poc_map <- heat_full %>%
   filter(HSI > 0) %>%
 ggplot(aes(fill = P_POC)) +
@@ -92,7 +92,7 @@ gridExtra::grid.arrange(poc_map, pov_map, ncol = 2, right = "Fig. 2")
 
 Other interesting patterns found within the data are health trends and specific discrepancies between predominately non-Hispanic White census tracts and predominately Black census tracts. For all four health variables found within the data set, asthma, obesity, coronary heart disease (CHD), and disability, majority minority census tracts exhibit higher prevalence than predominately White tracts (Fig. 3). This highlights the increased risk of health related events that are exacerbated by a higher sensitivity to heat and the inability to cope or adapt to it.     
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 asthma <- heat_full %>%
   filter(HSI > 0) %>%
   ggplot(aes(majority_minority, ASTHMA)) +
@@ -286,7 +286,7 @@ hei <- heat_full %>%
   select(P_TREECOVER:HEI, geometry)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 hei_map <- hei %>%
 ggplot(aes(fill = HEI)) +
     geom_sf(aes(geometry = geometry), color = NA) +
@@ -321,7 +321,7 @@ gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2)
 As shown by the maps above, there are fewer patterns in discrepancies between environmental factors and census tracts compared to that of the HSI data. Predominately Black census tracts are disproportionately affected by any of the environmental variables (Fig. 7). These maps highlight areas such as downtown being at the highest risk of heat exposure. This makes intuitive sense as this is the city center of DC which includes high amounts of impervious surface and lacks cooling characteristics such as large parks or trees. When compared to areas of interest in the HSI section, census tracts that were poorer and majority minority are relatively similar to more White Census tracts. However, given the urban nature of the city, proportions of census tracts that are impervious surfaces and the lack of tree cover is a cause for concern given the socioeconomic patterns discussed previously. This creates the need for both environmental and social policy to adequately mitigate the risk of heat induced health incidents. 
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 tree <- heat_full %>%
   filter(HEI >0) %>%
   ggplot(aes(majority_minority, P_TREECOVER)) +
@@ -356,7 +356,7 @@ Policy recommendations revolving around mitigating mean air temperature of censu
 Policy recommendations relating to socioeconomic factors must center around enabling individuals in census tracts with high HSI metrics to be able to adapt and cope to instances of extreme heat. One clear avenue is to strengthen DC's Heat Emergency Plan (HEP) which opens resources when temperature exceed 90 degrees Fahrenheit. These resources are deemed cooling centers and range from pools, libraries, shelters, etc. (Fig. 8) located across the city (Appendix 2). However, the city must be able to give clear and concise information regarding where these centers are located and the hours they are open. Furthermore, the city must be able to offer more cooling centers that are accessible during non-business hours. As of right now, the city only advertises four options that are open 24/7 in cases of extreme heat. While temperatures do decrease during the night hours, individuals with low heat tolerance are still at adverse risk of heat induced instances. Opening more accessible cooling centers in census tracts with high HSI will drastically reduce the possibility of heat induced health incidents.    
 
 # Get Help On This
-```{r, echo=FALSE}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 cooling <- read_csv("../data/Cooling_Centers_-_District_of_Columbia.csv", show_col_types = F)
 
 cooling_clean <- cooling %>%
@@ -407,7 +407,7 @@ cor_table <- hsi_model %>%
 knitr::kable(cor_table, caption = "Correlation table of HSI variables")
 ```
 
-```{r, echo=FALSE, out.height="50%", out.width="50%"}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
 heat_full %>%
 ggplot() +
     geom_sf(aes(geometry = geometry), color = NA) +
