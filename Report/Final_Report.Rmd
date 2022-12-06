@@ -136,11 +136,14 @@ With preliminary patterns relating to a census tract's Heat Sensitivity Index es
 
 ## Regression Definition
 
+### Preliminary Regression Identification
+
 To best understand to what magnitude socioeconomic factors affect HSI levels, preliminary regression models will be created to identify variables of statistical significance. To achieve the best possible model, best subsets regression, forward stepwise, and backward stepwise will be conducted and the best model will be taken following the analysis of adjusted r-squared, Mallows CP, and BIC.
 
 The first model will be utilizing the best subsets regression strategy through the leaps package. The model was fitted and the best eight models are shown below. Summary statistics of each model will be analyzed to figure which model will be chosen (Table 1).
 ```{r, include=FALSE}
 hsi_model <- heat_full %>%
+  filter(HSI > 0) %>%
   select(P_POC:HSI)
 hsi_model$P_LIMENG = as.numeric(hsi_model$P_LIMENG)
 regFull <- regsubsets(HSI~ ., hsi_model)
@@ -166,7 +169,6 @@ which.min(summary(regFull)$bic)
 ```
 
 ```{r, echo=FALSE}
-summary(regFull)
 bs_table <- data.frame(model = c(1:8),
           adjr2 = adjr2_bs, 
            cp = cp_bs,
@@ -174,7 +176,7 @@ bs_table <- data.frame(model = c(1:8),
 knitr::kable(bs_table, caption = "Best Subsets Regression")
 ```
 
-Model 5 returned the highest adjusted r-squared value, lowest Mallow's Cp value, and second lowest BIC value. This shows that the model captures the highest variation in HSI, the best predicting power for all possible models, and the second lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the same results (Table 3). 
+Model 5 returned the highest adjusted r-squared value, lowest Mallow's Cp value, and second lowest BIC value. This shows that the model captures the highest variation in HSI, the best predicting power for all possible models, and the second lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the same results (Table 3). Thus, the model selected will include the variables percent people of color (P_POC), percent elderly (P_ELDERLY), percent poverty (P_POVERTY), percent limited English (P_LIMENG), and asthma (ASTHMA). 
 
 
 ```{r, include=FALSE}
@@ -233,7 +235,126 @@ bstep_table <- data.frame(model = c(1:8),
 knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwise")
 ```
 
-With an early model built, this study will transition to analyze these five predictors of HSI and patterns of them throughout the city.   
+The fitted regression model is shown below
+
+```{r, include=FALSE}
+library(tidymodels)
+library(parsnip)
+```
+
+```{r, echo=FALSE}
+set.seed(2200)
+data_split <- hsi_model %>%
+  initial_split(prop = 4/5)
+
+hsi_train <- training(data_split)
+hsi_test <- testing(data_split)
+
+lm_fit <- linear_reg() %>%
+  fit(HSI ~ P_POC + P_ELDERLY + P_POVERTY + P_LIMENG + ASTHMA, data = hsi_train)
+tidy(lm_fit)
+
+
+out_preds <- bind_cols(hsi_test %>% select(HSI),
+                       predict(lm_fit, new_data = hsi_test)) %>%
+                       rename(lm = .pred)
+```
+
+
+## Shrinkage Regression
+
+While best subsets regression identified the best model as including five variables, there is clear covariation that affects the magnitude of the coefficients (Appendix A). As a result, a LASSO regression model will be fitted and compared to the original regression model. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. 
+```{r, echo=FALSE}
+# LASSO 
+set.seed(2200)
+
+lasso_fit <- linear_reg(mixture = 1) %>%
+  fit(HSI ~ P_POC + P_ELDERLY + P_POVERTY + P_LIMENG + ASTHMA, data = hsi_train)
+tidy(lasso_fit)
+
+full_preds <- bind_cols(out_preds,
+                        predict(lasso_fit, new_data = hsi_test)) %>%
+  rename(lasso = .pred)
+```
+
+# Environmental Factors of Heat Exposure Indexes
+
+It is important to understand not only socioeconomic factors that contribute to a census tract's HSI statistic, but also the environmental factors that contribute to their Heat Exposure Index. However, unlike HSI, HEI is defined in for each census tract as 50 percent mean air temperature, 25 percent lack of tree canopy, and 25 percent impervious surface. As a result, analysis will be centered around patterns of three variables as opposed to any model building to predict HEI values. 
+
+```{r, include = FALSE}
+hei <- heat_full %>% 
+  select(P_TREECOVER:HEI, geometry)
+```
+
+```{r, echo=FALSE}
+hei_map <- hei %>%
+ggplot(aes(fill = HEI)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c() +
+    labs(title = "HEI") +
+  theme_bw() 
+
+air_map <- hei %>%
+ggplot(aes(fill = AIRTEMP_MEAN)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c() +
+    labs(title = "Mean Air Temp") +
+  theme_bw()
+
+imp_map <- hei %>%
+ggplot(aes(fill = P_IMPSURF)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c() +
+    labs(title = "% Impervious Surface") +
+  theme_bw()
+
+no_tree_map <- hei %>%
+ggplot(aes(fill = P_NOTREE)) +
+    geom_sf(aes(geometry = geometry), color = NA) +
+    scale_fill_viridis_c() +
+    ggtitle("% No Tree") +
+  theme_bw()
+
+gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2, right = "Fig. 7")
+```
+
+
+```{r, echo=FALSE}
+tree <- heat_full %>%
+  filter(HEI >0) %>%
+  ggplot(aes(majority_minority, P_TREECOVER)) +
+  geom_boxplot()
+
+no_tree <- heat_full %>%
+  filter(HEI >0) %>%
+  ggplot(aes(majority_minority, P_NOTREE)) +
+  geom_boxplot()
+
+temp <- tree <- heat_full %>%
+  filter(HEI >0) %>%
+  ggplot(aes(majority_minority, AIRTEMP_MEAN)) +
+  geom_boxplot()
+
+imp_surf <- tree <- heat_full %>%
+  filter(HEI >0) %>%
+  ggplot(aes(majority_minority, P_IMPSURF)) +
+  geom_boxplot()
+
+gridExtra::grid.arrange(tree, no_tree, temp, imp_surf, ncol = 2, right = "Fig. 8")
+```
+
+
+\newpage
+
+# Appendix
+```{r, echo=FALSE}
+cor_table <- hsi_model %>%
+  na.omit() %>%
+  cor() %>%
+  round(digits = 3)
+
+knitr::kable(cor_table, caption = "Correlation table of HSI variables")
+```
 
 \newpage
 # **References**
