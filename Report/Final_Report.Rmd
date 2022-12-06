@@ -221,7 +221,7 @@ which.min(summary(regfit.bwd)$cp)
 which.min(summary(regfit.bwd)$bic) 
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=FALSE}
 fs_table <- data.frame(model = c(1:8),
           adjr2 = adjr2_fs, 
            cp = cp_fs,
@@ -232,7 +232,8 @@ bstep_table <- data.frame(model = c(1:8),
            cp = cp_bstep,
            bic = bic_bstep)
 
-knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwise")
+knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwise") %>%
+  kableExtra::kable_styling(latex_options = "HOLD_position")
 ```
 
 The fitted regression model is shown below
