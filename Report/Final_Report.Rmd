@@ -252,7 +252,7 @@ hsi_test <- testing(data_split)
 
 lm_fit <- linear_reg() %>%
   fit(HSI ~ P_POC + P_ELDERLY + P_POVERTY + P_LIMENG + ASTHMA, data = hsi_train)
-tidy(lm_fit)
+broom::tidy(lm_fit)
 
 
 out_preds <- bind_cols(hsi_test %>% select(HSI),
@@ -270,7 +270,7 @@ set.seed(2200)
 
 lasso_fit <- linear_reg(mixture = 1) %>%
   fit(HSI ~ P_POC + P_ELDERLY + P_POVERTY + P_LIMENG + ASTHMA, data = hsi_train)
-tidy(lasso_fit)
+broom::tidy(lasso_fit)
 
 full_preds <- bind_cols(out_preds,
                         predict(lasso_fit, new_data = hsi_test)) %>%
@@ -315,7 +315,7 @@ ggplot(aes(fill = P_NOTREE)) +
     ggtitle("% No Tree") +
   theme_bw()
 
-gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2, right = "Fig. 7")
+gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2)
 ```
 
 
@@ -341,6 +341,40 @@ imp_surf <- tree <- heat_full %>%
   geom_boxplot()
 
 gridExtra::grid.arrange(tree, no_tree, temp, imp_surf, ncol = 2, right = "Fig. 8")
+```
+
+```{r, echo=FALSE}
+heat_full %>%
+ggplot() +
+    geom_sf(aes(geometry = geometry), color = NA) +
+  geom_point(data = cooling_clean, aes(lat, lon)) +
+  xlab("") +
+  ylab("") +
+  ggtitle("DC Cooling Centers") +
+  theme_bw()
+```
+
+```{r, echo=FALSE}
+cooling <- read_csv("../data/Cooling_Centers_-_District_of_Columbia.csv", show_col_types = F)
+
+cooling_clean <- cooling %>%
+  rename(lat = X,
+         lon = Y,
+         type = TYPE_) %>%
+  select(lat, lon, type)
+cooling_clean$type = as.factor(cooling_clean$type)
+
+cooling_type <- count(cooling_clean, type) %>%
+  arrange(desc(n))
+
+ggplot(cooling_type, aes(reorder(type, n, max), n)) +
+  geom_col() +
+  coord_flip() +
+  ggtitle("Counts of DC Cooling Centers") +
+  xlab("Cooling Center") +
+  ylab("Count") +
+  theme_bw()
+
 ```
 
 
