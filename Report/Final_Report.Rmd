@@ -373,7 +373,6 @@ Policy recommendations revolving around mitigating mean air temperature of censu
 
 Policy recommendations relating to socioeconomic factors must center around enabling individuals in census tracts with high HSI metrics to be able to adapt and cope to instances of extreme heat. One clear avenue is to strengthen DC's Heat Emergency Plan (HEP) which opens resources when temperature exceed 95 degrees Fahrenheit. These resources are deemed cooling centers and range from pools, libraries, shelters, etc. located across the city (Appendix 2). However, the city must be able to give clear and concise information regarding where these centers are located and the hours they are open. Furthermore, the city must be able to offer more cooling centers that are accessible during non-business hours. As of right now, the city only advertises four options that are open 24/7 in cases of extreme heat. While temperatures do decrease during the night hours, individuals with low heat tolerance are still at adverse risk of heat induced illness Opening more accessible cooling centers in census tracts with high HSI will drastically reduce the possibility of heat induced health incidents.    
 
-# Get Help On This
 ```{r, echo=FALSE, out.height="80%", out.width="80%"}
 cooling <- read_csv("../data/Cooling_Centers_-_District_of_Columbia.csv", show_col_types = F)
 
