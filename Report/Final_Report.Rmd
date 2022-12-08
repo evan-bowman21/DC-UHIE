@@ -142,9 +142,9 @@ The first model will be utilizing the best subsets regression strategy through t
 ```{r, include=FALSE}
 hsi_model <- heat_full %>%
   filter(HSI > 0) %>%
-  select(P_POC:HSI)
+  select(P_POC:HSI, P_TREECOVER:AIRTEMP_MEAN)
 hsi_model$P_LIMENG = as.numeric(hsi_model$P_LIMENG)
-regFull <- regsubsets(HSI~ ., hsi_model)
+regFull <- regsubsets(HSI~ ., hsi_model, nvmax = 13)
 model_sum <- summary(regFull)
 
 # Regression Summary Plots
@@ -166,7 +166,7 @@ which.min(summary(regFull)$bic)
 ```
 
 ```{r, echo=FALSE}
-bs_table <- data.frame(model = c(1:8),
+bs_table <- data.frame(model = c(1:13),
           adjr2 = adjr2_bs, 
            cp = cp_bs,
            bic = bic_bs)
@@ -174,64 +174,6 @@ knitr::kable(bs_table, caption = "Best Subsets Regression")
 ```
 
 Model 6 returned the third highest adjusted r-squared value, lowest Mallow's Cp value, and third lowest BIC value. This shows that the model captures one of the the highest variations in HSI, the best predicting power for all possible models, and the third lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the similar results (Table 3). However, for the data, no model is shown to be the clear best. 
-
-
-```{r, include=FALSE}
-# Stepwise Fitting
-regfit.fwd <- regsubsets(HSI ~ ., data = hsi_model, method = "forward")
-summary(regfit.fwd)
-
-# Summary Plots
-par(mfrow=c(1,1))
-plot(regfit.fwd, scale = "r2")
-plot(regfit.fwd, scale = "adjr2")
-plot(regfit.fwd, scale = "Cp")
-plot(regfit.fwd, scale = "bic")
-
-adjr2_fs <- summary(regfit.fwd)$adjr2  
-cp_fs <- summary(regfit.fwd)$cp  
-bic_fs <- summary(regfit.fwd)$bic  
-
-# Identifying best values
-which.max(summary(regfit.fwd)$adjr2)
-which.min(summary(regfit.fwd)$cp) 
-which.min(summary(regfit.fwd)$bic) 
-
-# Backwards Fitting
-regfit.bwd <- regsubsets(HSI ~ ., data = hsi_model, method = "backward")
-summary(regfit.bwd)
-
-# Summary Plots
-par(mfrow=c(1,1))
-plot(regfit.bwd, scale = "r2")
-plot(regfit.bwd, scale = "adjr2")
-plot(regfit.bwd, scale = "Cp")
-plot(regfit.bwd, scale = "bic")
-
-adjr2_bstep <- summary(regfit.bwd)$adjr2  
-cp_bstep <- summary(regfit.bwd)$cp  
-bic_bstep <- summary(regfit.bwd)$bic  
-
-# Identifying best values
-which.max(summary(regfit.bwd)$adjr2)
-which.min(summary(regfit.bwd)$cp) 
-which.min(summary(regfit.bwd)$bic) 
-```
-
-```{r, echo=FALSE, warning=FALSE}
-fs_table <- data.frame(model = c(1:8),
-          adjr2 = adjr2_fs, 
-           cp = cp_fs,
-           bic = bic_fs)
-
-bstep_table <- data.frame(model = c(1:8),
-          adjr2 = adjr2_bstep, 
-           cp = cp_bstep,
-           bic = bic_bstep)
-
-knitr::kable(list(fs_table, bstep_table), caption = "Forward and Backward Stepwise") %>%
-  kableExtra::kable_styling(latex_options = "HOLD_position")
-```
 
 Due to the relative similarities in adjusted r-squared, Mallows Cp, and BIC, the top model from each regression method was trained and validated to understand which is the best to proceed with. Best Subsets and forward stepwise returned a model that included the variables P_POC, P_CHILD, P_ELDERLY, P_POVERTY, P_LIMENG, and OBESITY. Backwards stepwise returned a model that inlcuded all varialbes with the exception of OBESITY.
 ```{r, include=FALSE}
@@ -249,32 +191,23 @@ hsi_train <- training(data_split)
 hsi_test <- testing(data_split)
 
 model_best <- linear_reg() %>%
-  fit(HSI ~ P_POC + P_CHILD + P_ELDERLY + P_POVERTY + P_LIMENG + OBESITY, data = hsi_train)
-
-model_backward <- linear_reg() %>%
-  fit(HSI ~ . - OBESITY, data = hsi_train)
-
+  fit(HSI ~ P_POC + P_CHILD + P_ELDERLY + P_POVERTY + P_DISABILITY + P_LIMENG + OBESITY + ASTHMA + CHD + P_TREECOVER, data = hsi_train)
 
 
 out_preds_reg <- bind_cols(hsi_test %>% select(HSI),
                        predict(model_best, new_data = hsi_test)) %>%
                        rename(best = .pred)
 
-out_preds_reg <- bind_cols(out_preds_reg, 
-                           predict(model_backward, new_data = hsi_test)) %>%
-                           rename(backward = .pred)
 
 out_metrics_reg <- out_preds_reg %>% metrics(truth = HSI, estimate = best) %>%
-     rename(best = .estimate) %>%
-  left_join(out_preds_reg %>% metrics(truth = HSI, estimate = backward) %>%
-            rename(backward = .estimate))
+     rename(best = .estimate)
 
 tibble(out_metrics_reg)
 ```
 
 The results of further analyzing the two models shows that the model chosen by backwards stepwise has better predicting power based on the root mean square error (rmse) and mean absolute error (mae). The fitted model is shown below:
 ```{r, echo=FALSE}
-best_lm <- lm(HSI ~ . - OBESITY, data = hsi_model)
+best_lm <- lm(HSI ~ P_POC + P_CHILD + P_ELDERLY + P_POVERTY + P_DISABILITY + P_LIMENG + OBESITY + ASTHMA + CHD + P_TREECOVER, data = hsi_model)
 best_lm_summ <- summary(best_lm)
 broom::tidy(best_lm_summ)
 ```
@@ -284,15 +217,25 @@ broom::tidy(best_lm_summ)
 While backward stepwise regression identified the best model as including eight variables, there is clear covariation that affects the magnitude of the coefficients (Appendix Tab. 3). As a result, a LASSO regression model will be fitted and compared to the original regression model. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. 
 ```{r, echo=FALSE}
 # LASSO 
+best_lm_variables <-  hsi_model %>%
+  select(-P_NOTREE:-AIRTEMP_MEAN)
 set.seed(2200)
 
-lasso_fit <- linear_reg(mixture = 1) %>%
-  fit(HSI ~ . -OBESITY, data = hsi_train)
-broom::tidy(lasso_fit)
+x <- model.matrix(HSI ~ ., data = best_lm_variables)[,-1]
+y <- best_lm_variables$HSI
 
-# full_preds <- bind_cols(out_preds,
-#                         predict(lasso_fit, new_data = hsi_test)) %>%
-#   rename(lasso = .pred)
+grid <- seq(3,0.01,length=300)
+lasso.mod <- glmnet(x, y, alpha = 1, lambda = grid)
+
+cv.lasso.mod <- cv.glmnet(x, y, alpha = 1)
+plot(cv.lasso.mod)
+lambda <- cv.lasso.mod$lambda.min
+
+# LASSO model with min lambda
+lassop <- predict(lasso.mod, s=cv.lasso.mod$lambda.min, type="coefficients" )
+
+# compare coefficients #
+cbind(coef(best_lm), lassop)
 ```
 
 # Environmental Factors of Heat Exposure Indexes
