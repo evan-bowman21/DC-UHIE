@@ -94,7 +94,7 @@ Other interesting patterns found within the data are health trends and specific 
 asthma <- heat_full %>%
   filter(HSI > 0) %>%
   ggplot(aes(majority_minority, ASTHMA)) +
-  geom_boxplot() +
+  geom_violin() +
   ggtitle("Asthma") +
   xlab("Majority Minority") +
   ylab("Asthma") + 
@@ -103,7 +103,7 @@ asthma <- heat_full %>%
 obesity <- heat_full %>%
   filter(HSI > 0) %>%
   ggplot(aes(majority_minority, OBESITY)) +
-  geom_boxplot() +
+  geom_violin() +
   ggtitle("Obesity") +
   xlab("Majority Minority") +
   ylab("Obesity") +
@@ -112,7 +112,7 @@ obesity <- heat_full %>%
 chd <- heat_full %>%
   filter(HSI > 0) %>%
   ggplot(aes(majority_minority, CHD)) +
-  geom_boxplot() +
+  geom_violin() +
   ggtitle("CHD") +
   xlab("Majority Minority") +
   ylab("CHD") +
@@ -121,7 +121,7 @@ chd <- heat_full %>%
 disability <- heat_full %>%
   filter(HSI > 0) %>%
   ggplot(aes(majority_minority, P_DISABILITY)) +
-  geom_boxplot() +
+  geom_violin() +
   ggtitle("Disability") +
   xlab("Majority Minority") +
   ylab("Disability") +
@@ -139,49 +139,19 @@ With preliminary patterns relating to a census tract's Heat Sensitivity Index es
 To best understand to what magnitude socioeconomic factors affect HSI levels, preliminary regression models will be created to identify variables of statistical significance. To achieve the best possible model, best subsets regression, forward stepwise, and backward stepwise will be conducted and the best model will be taken following the analysis of adjusted r-squared, Mallows CP, and BIC.
 
 The first model will be utilizing the best subsets regression strategy through the leaps package. The model was fitted and the best eight models are shown below. Summary statistics of each model will be analyzed to figure which model will be chosen (Table 1).
-```{r, include=FALSE}
+
+Model 10 returned the  highest adjusted r-squared value, lowest Mallow's Cp value, and lowest BIC value. This shows that the model captures one of the the highest variations in HSI, the best predicting power for all possible models, and the lowest bias for all possible models using the Best Subsets method. Furthermore, the Mallow's CP value is near the number of predictors of the model. This further shows the lack of bias the model has. 
+
+The top model from each the best subsets method was trained and validated to understand which the true predicting power. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(leaps)
+library(tidymodels)
+library(parsnip)
 hsi_model <- heat_full %>%
   filter(HSI > 0) %>%
   select(P_POC:HSI, P_TREECOVER:AIRTEMP_MEAN)
 hsi_model$P_LIMENG = as.numeric(hsi_model$P_LIMENG)
-regFull <- regsubsets(HSI~ ., hsi_model, nvmax = 13)
-model_sum <- summary(regFull)
-
-# Regression Summary Plots
-par(mfrow=c(1,1))
-plot(regFull, scale = "r2")
-plot(regFull, scale = "adjr2")
-plot(regFull, scale = "Cp")
-plot(regFull, scale = "bic")
-
-adjr2_bs <- summary(regFull)$adjr2
-cp_bs <- summary(regFull)$cp  
-bic_bs <- summary(regFull)$bic  
-
-
-# Identifying best values
-which.max(summary(regFull)$adjr2)
-which.min(summary(regFull)$cp) 
-which.min(summary(regFull)$bic) 
-```
-
-```{r, echo=FALSE}
-bs_table <- data.frame(model = c(1:13),
-          adjr2 = adjr2_bs, 
-           cp = cp_bs,
-           bic = bic_bs)
-knitr::kable(bs_table, caption = "Best Subsets Regression")
-```
-
-Model 6 returned the third highest adjusted r-squared value, lowest Mallow's Cp value, and third lowest BIC value. This shows that the model captures one of the the highest variations in HSI, the best predicting power for all possible models, and the third lowest bias for all possible models using the Best Subsets method. Forward and Backwards Stepwise regression returned the similar results (Table 3). However, for the data, no model is shown to be the clear best. 
-
-Due to the relative similarities in adjusted r-squared, Mallows Cp, and BIC, the top model from each regression method was trained and validated to understand which is the best to proceed with. Best Subsets and forward stepwise returned a model that included the variables P_POC, P_CHILD, P_ELDERLY, P_POVERTY, P_LIMENG, and OBESITY. Backwards stepwise returned a model that inlcuded all varialbes with the exception of OBESITY.
-```{r, include=FALSE}
-library(tidymodels)
-library(parsnip)
-```
-
-```{r, echo=FALSE, message=FALSE}
 set.seed(2200)
 
 data_split <- hsi_model %>%
@@ -190,53 +160,70 @@ data_split <- hsi_model %>%
 hsi_train <- training(data_split)
 hsi_test <- testing(data_split)
 
-model_best <- linear_reg() %>%
-  fit(HSI ~ P_POC + P_CHILD + P_ELDERLY + P_POVERTY + P_DISABILITY + P_LIMENG + OBESITY + ASTHMA + CHD + P_TREECOVER, data = hsi_train)
+regfit.best <- regsubsets(HSI ~ ., data = hsi_train, nvmax = 13)
 
-
-out_preds_reg <- bind_cols(hsi_test %>% select(HSI),
-                       predict(model_best, new_data = hsi_test)) %>%
-                       rename(best = .pred)
-
-
-out_metrics_reg <- out_preds_reg %>% metrics(truth = HSI, estimate = best) %>%
-     rename(best = .estimate)
-
-tibble(out_metrics_reg)
+# Compute the validation set error for the best model of each model size.
+val.mat <- model.matrix(HSI ~ ., data = hsi_test) # This a model matrix from the validation data.
+head(val.mat)
+val.errors <- rep(NA, 13) # there are 13 variables and we will look at a model of each size (i.e num vars)
+for (i in 1:13) {
+ coefi <- coef(regfit.best, id = i) # get coef from the best model of size i
+ pred <- val.mat[, names(coefi)] %*% coefi # predicted values = Xt*beta 
+ val.errors[i] <- sqrt(mean((hsi_test$HSI - pred)^2)) # RMSE square root of (validation observed y - yhat)^2
+}
+data.frame(val.errors,numvars=1:13)
+which.min(val.errors)
+coef(regfit.best,id=which.min(val.errors))
+best_rmse <- val.errors[12]
 ```
 
-The results of further analyzing the two models shows that the model chosen by backwards stepwise has better predicting power based on the root mean square error (rmse) and mean absolute error (mae). The fitted model is shown below:
-```{r, echo=FALSE}
-best_lm <- lm(HSI ~ P_POC + P_CHILD + P_ELDERLY + P_POVERTY + P_DISABILITY + P_LIMENG + OBESITY + ASTHMA + CHD + P_TREECOVER, data = hsi_model)
-best_lm_summ <- summary(best_lm)
-broom::tidy(best_lm_summ)
+Model fit to the whole data set.
+```{r, echo=FALSE, warning=FALSE}
+regfit.best <- regsubsets(HSI ~ ., data = hsi_test, nvmax = 13)
+best_coeff <- coef(regfit.best,12)
+knitr::kable(best_coeff)
 ```
 
 ### Shrinkage Regression
 
-While backward stepwise regression identified the best model as including eight variables, there is clear covariation that affects the magnitude of the coefficients (Appendix Tab. 3). As a result, a LASSO regression model will be fitted and compared to the original regression model. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. 
-```{r, echo=FALSE}
+While best subsets regression identified the best model as including 10 variables, there is clear covariation that affects the magnitude of the coefficients (Appendix Tab. 3). As a result, a LASSO regression model will be fitted and compared to the original regression model. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. 
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(glmnet)
 # LASSO 
-best_lm_variables <-  hsi_model %>%
-  select(-P_NOTREE:-AIRTEMP_MEAN)
+train_x <- model.matrix(HSI ~ ., hsi_train)[, -10]
+train_y <- hsi_train$HSI
+
+test_x <- model.matrix(HSI ~ ., hsi_test)[, -10]
+test_y <- hsi_test$HSI
 set.seed(2200)
 
-x <- model.matrix(HSI ~ ., data = best_lm_variables)[,-1]
-y <- best_lm_variables$HSI
+grid <- 10^seq(10,-2,length=100) # grid of lambda values goes from 10^10 down to 10^-2 = 0.01
+lasso.mod <- glmnet(train_x, train_y, alpha = 1, lambda = grid) 
+dim(coef(lasso.mod)) # 20 coefficients by 100 lambda values
 
-grid <- seq(3,0.01,length=300)
-lasso.mod <- glmnet(x, y, alpha = 1, lambda = grid)
-
-cv.lasso.mod <- cv.glmnet(x, y, alpha = 1)
+set.seed(1)
+cv.lasso.mod <- cv.glmnet(train_x, train_y, alpha = 1)
 plot(cv.lasso.mod)
-lambda <- cv.lasso.mod$lambda.min
+cv.lasso.mod$lambda.min
 
-# LASSO model with min lambda
-lassop <- predict(lasso.mod, s=cv.lasso.mod$lambda.min, type="coefficients" )
+lasso_coeff <- predict(lasso.mod, s=cv.lasso.mod$lambda.min, type="coefficients" )
+lasso_pred <- predict(lasso.mod, s=cv.lasso.mod$lambda.min, newx = test_x, type = "response")
 
-# compare coefficients #
-cbind(coef(best_lm), lassop)
+lasso_rmse <- sqrt(mean(lasso_pred - test_y)^2)
+
+lasso_coeff
 ```
+
+```{r, echo=FALSE}
+rmse<- data.frame(best_rmse, lasso_rmse)
+colnames(rmse) <- c("Best Subsets", "LASSO")
+rownames(rmse) <- "RMSE"
+
+knitr::kable(rmse)
+```
+
+
+
 
 # Environmental Factors of Heat Exposure Indexes
 
@@ -379,6 +366,11 @@ ggplot() +
   theme_bw() +
   labs(caption = "Appendix Fig. 1")
 ```
+
+```{r, echo=FALSE}
+plot(1:13,val.errors,xlab='num vars',ylab='CV errors',main='CV errors vs. num vars', sub = "Appendix Fig.2", pch=19,type='b')
+```
+
+
 \newpage
 **References**
-
