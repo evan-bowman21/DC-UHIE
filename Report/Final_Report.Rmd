@@ -48,7 +48,7 @@ These findings are consistent with research that shows majority minority populat
 
 **What are reoccurring sociodemographic trends that are associated with higher heat sensitivity indexes?** Who are the communities at a larger risk of heat-induced health events due to higher heat sensitivity index (HSI)? HSI is a metric that describes an individuals ability to adapt, cope, or recover from extreme heat and is explained by specific demographic and health variables of DC's census tracts. Identifying socioeconomic and health trends can assist policy makers in identifying the communities who would best benefit from policy implementation. 
 
-**What are the environmental metrics that are correlated with the census tracts with the highest HSI?** What environmental characteristics of certain census tracts create larger heat exposure indexes (HEI)? In the data, HEI is a metric that takes a census tract's mean ambient air temperature as the exposure variable (50 percent) and two physical variables (impervious surfaces: 25 percent, lack of tree cover: 25 percent) that describe a tract's heat retention. Understanding the environmental factors would help in identifying policy approaches that would mitigate the consequences of the urban heat island effect by assisting at risk census tracts with solutions to heat retention. 
+**What are the environmental metrics that are correlated with the census tracts with the highest HEI?** What environmental characteristics of certain census tracts create larger heat exposure indexes (HEI)? In the data, HEI is a metric that takes a census tract's mean ambient air temperature as the exposure variable (50 percent) and two physical variables (impervious surfaces: 25 percent, lack of tree cover: 25 percent) that describe a tract's heat retention. Understanding the environmental factors would help in identifying policy approaches that would mitigate the consequences of the urban heat island effect by assisting at risk census tracts with solutions to heat retention. 
 
 **Do these findings highlight environmental justice issues that exist within Washington DC?** Do the findings of this study concur with previous research regarding race inequities for heat exposure and sensitivity in urban centers? The ultimate goal in answering these two research questions is to find the intersectionality of environmental factors that exacerbate the urban heat island effect and the populations of urban centers most at risk. 
 
@@ -65,10 +65,10 @@ ggplot(aes(fill = HSI)) +
   labs(caption = "Fig. 1")
 ```
 
-As seen from the Figure 1, the census tracts with the highest HSI levels fall within areas along the Anacostia River, also found within Wards 7 and 8. These census tracts are a vast contrast when compared to census tracts with low HSI levels found in the Northwest portion of the city. Areas along the Anacostia River are typically known for being predominately majority minority as well as lower income compared to census tracts in the Northwest. This further contributes to the hypothesis of racial inequity in DC's Urban Heat Island Effect as the intersectionality of poverty and race exacerbates individuals ability to cope with extreme heat (Fig. 2). Analysis conducted in this section will look to define what specific patterns exist within tracts with high HSI levels.
+As seen from the Figure 1, the census tracts with the highest HSI levels fall within areas along the Anacostia River, also known as Wards 7 and 8. These census tracts are a vast contrast when compared to census tracts with low HSI levels found in the Northwest portion of the city. Areas along the Anacostia River are typically known for being predominately majority minority as well as lower income compared to census tracts in the Northwest. This further contributes to the hypothesis of racial inequity in DC's Urban Heat Island Effect as the intersectionality of poverty and race exacerbates individuals ability to cope with extreme heat (Fig. 2). Analysis conducted in this section will look to define what specific patterns exist within tracts with high HSI levels.
 
 
-```{r, echo=FALSE, out.height="60%", out.width="60%"}
+```{r, echo=FALSE, out.height= "60%", out.width="60%"}
 poc_map <- heat_full %>%
   filter(HSI > 0) %>%
 ggplot(aes(fill = P_POC)) +
@@ -85,7 +85,7 @@ ggplot(aes(fill = P_POVERTY)) +
     ggtitle("% Poverty") +
   theme_bw()
 
-gridExtra::grid.arrange(poc_map, pov_map, ncol = 2, right = "Fig. 2")
+gridExtra::grid.arrange(poc_map, pov_map, nrow = 1, bottom = "Fig. 2")
 ```
 
 Other interesting patterns found within the data are health trends and specific discrepancies between predominately non-Hispanic White census tracts and predominately Black census tracts. For all four health variables found within the data set, asthma, obesity, coronary heart disease (CHD), and disability, majority minority census tracts exhibit higher prevalence than predominately White tracts (Fig. 3). This highlights the increased risk of health related events that are exacerbated by a higher sensitivity to heat and the inability to cope or adapt to it.     
@@ -127,10 +127,10 @@ disability <- heat_full %>%
   ylab("Disability") +
   theme_bw()
 
-gridExtra::grid.arrange(asthma, obesity, chd, disability, ncol = 2, right = "Fig. 3")
+gridExtra::grid.arrange(asthma, obesity, chd, disability, ncol = 2, bottom = "Fig. 3")
 ```
 
-With preliminary patterns relating to a census tract's Heat Sensitivity Index established, this paper will shift to creating a preliminary model that best exemplifies which variables contribute most to HSI metrics for a given census tract.  
+With preliminary patterns relating to a census tract's Heat Sensitivity Index established, this paper will shift to creating a preliminary model that best exemplifies which variables best predict HSI for any given census tract.  
 
 ## Regression Definition
 
@@ -170,33 +170,32 @@ for (j in 1:k) {
     cv.errors[j,i] <- sqrt(mean((hsi_model$HSI[folds==j] - pred)^2)) # RMSE = square root of (y - yhat)^2
   }
 }
-# cv.errors 
+# CV.errors 
 
-# plot(1:13,mean.cv.errors,xlab='num vars',ylab = '10-fold mean CV error',main = '10-fold CV error vs. num vars',pch=19,type='b')
-# which.min(mean.cv.errors)  # best is 10th in this case
+# plot(1:13,mean.CV.errors,xlab='num vars',ylab = '10-fold mean CV error',main = '10-fold CV error vs. num vars',pch=19,type='b')
+# which.min(mean.CV.errors)  # best is 10th in this case
 
 mean.cv.errors <- apply(cv.errors,2,mean) # Average across folds to get the mean CV error for i-variable model
 mean.cv.error <- as.table(mean.cv.errors) 
 
 best_rmse <- 0.0003236
 
-knitr::kable(mean.cv.error, col.names = c("Variables", "CV Error"))
-
+knitr::kable(mean.cv.error, col.names = c("Variables", "CV Error"), caption = "RMSE Error of Best Subsets")
 ```
 
-The model including ten variables was identified as the lowest mean RMSE across the ten folds. This model was then fitted with the whole data for coefficient identification (Table ?).
+The model including ten variables was identified as the lowest mean RMSE across the ten folds. This model was then fitted with the whole data for coefficient identification (Table 2). This model, while not generative, can be useful in identifying the most important predictors of HSI for any given census tract. The inclusion of both P_POC and P_POV further contribute to the patterns found in initial data exploration. The inclusion of health variables makes intuitive sense as these illnesses would mitigate an individual's ability to adapt or deal with extreme heat. The statistical significance of P_TREECOVER is interesting as it is the only environmental metric that is included in the regression model. However, the idea of tree cover acting as a solution to overheating makes this seem plausible. 
 
 ```{r, echo=FALSE, warning=FALSE, out.height="60%", out.width="60%"}
-# We then perform best subsets selection on the full data set in order to obtain the 10-variable model:
+# We perform best subsets selection on the full data set in order to obtain the 10-variable model:
 reg.best <- regsubsets(HSI ~ ., data=hsi_model, nvmax=13)
 best_coeff <- as.table(coef(reg.best,10))
 
-knitr::kable(best_coeff, col.names = c("Predictor", "Coefficient"), label = "Fig ?")
+knitr::kable(best_coeff, col.names = c("Predictor", "Coefficient"), caption = "Coefficients of Identified Best Subsets Model")
 ```
 
 ### Shrinkage Regression
 
-While best subsets regression identified the best model as including 10 variables, there is clear covariation that affects the magnitude of the coefficients (Appendix Tab. 3). As a result, a LASSO regression model will be fitted and compared to the original regression model. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. The LASSO model was tuned using K-fold cross validation.. 
+While best subsets regression identified the best model as including 10 variables, there appears to be covariation that may affect the magnitude of the coefficients (Appendix Tab. 6). As a result, a LASSO regression model will be fitted and compared to the regression model identified by the best subsets method. LASSO takes into account the covariation of the predictors, and adjusts the coefficients accordingly. The LASSO model was tuned using K-fold Cross Validation. Summary statistics of the LASSO models are given below. 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, out.height="60%", out.width="60%"}
 library(glmnet)
 set.seed(2200)
@@ -208,13 +207,20 @@ y <- hsi_model$HSI
 lasso.mod <- glmnet(x, y, alpha = 1)
 cv.lasso.mod <- cv.glmnet(x, y, alpha = 1)
 
-cv.lasso.mod
-
 lambda_min_rmse <- sqrt(.00006119)
 lambda_1se_rmse <- sqrt(.00007348)
+
+min <- c("0.0003943", "64", "6.119e-05", "1.448e-05", "9")
+se <- c("0.0015918", "49", "7.348e-05", "1.738e-05", "8")
+
+lasso_table <- rbind(min, se)
+rownames(lasso_table) <- c("min", "1se")
+colnames(lasso_table) <- c("Lambda", "Index", "MSE", "SE", "Variables")
+
+knitr::kable(lasso_table, caption = "CV LASSO Results")
 ```
 
-There are two possible lambda values that the model could use to tune: the minimum or one standard error. Lambda min tends to over fit the data as exemplified by an extra predictor variable when compared to that of the 1se method. The 1se method gives the most regularized model while ensuring that the CV error is within one standard error of the minimum. The predicted coefficients for both lambda values are shown below. 
+There are two possible lambda values that the model could use to tune: the minimum or one standard error. Lambda min tends to over fit the data as exemplified by an extra predictor variable when compared to that of the 1se method. The 1se method gives the most regularized model while ensuring that the CV error is within one standard error of the minimum. As a result, there are differences between the two models besides the exclusion of P_TREECOVER in the one standard error lambda value. The difference between the magnitude of shrinkage of variables given certain lambda values is interesting and highlights the robustness of LASSO regression given different lambda values that differ by a very small factor. (Appendix Fig.3). Further analysis of the different lambda values can occur in the future to further explore the robustness of LASSO. 
 
 ```{r, echo=FALSE}
 lassop_min <- predict(lasso.mod, s=cv.lasso.mod$lambda.min, type="coefficients")
@@ -222,17 +228,25 @@ lassop_1se <- predict(lasso.mod, s=cv.lasso.mod$lambda.1se, type="coefficients")
 
 lasso_coeff <- cbind(lassop_min, lassop_1se)
 colnames(lasso_coeff) <- c("Min", "1 se")
-lasso_coeff
+lasso_coeff <- as.matrix(lasso_coeff)
+lasso_coeff <- as.table(lasso_coeff)
+
+lasso_coeff <- lasso_coeff[-2,]
+lasso_coeff <- round(lasso_coeff, digits = 4)
+
+knitr::kable(lasso_coeff, caption = "Coefficients of LASSO Models")
 ```
 
-Also, by obtaining the MSE of the two lambda values we can compute the RMSE and compare to that of the best subsets method. The comparison of the RMSE of the three models highlights that the best subsets model has the best predictive power. This model, while not generative, offers could predictors of socioeconomic factors that are correlated with HSI levels for census tracts. 
+Also, by obtaining the MSE of the two lambda values we can compute the RMSE and compare to that of the best subsets method. The comparison of the RMSE and MSE of the three models highlights that the best subsets model has the best predictive power. However, it appears that all three have relatively good predicting power. This model, while not generative, offers the framework of identifying significant predictors of HSI levels for census tracts. 
 ```{r, echo= FALSE, out.height="60%", out.width="60%"}
 rmse <- cbind(best_rmse, lambda_min_rmse, lambda_1se_rmse)
+mse <- cbind(best_rmse^2, lambda_min_rmse^2, lambda_1se_rmse^2)
 rmse <- as.table(rmse)
-colnames(rmse) <- c("Best", "Lambda Min", "Lambda 1se")
-rownames(rmse) <- "RMSE"
+metrics <- rbind(rmse, mse)
+colnames(metrics) <- c("Best", "Lambda Min", "Lambda 1se")
+rownames(metrics) <- c("RMSE", "MSE")
 
-knitr::kable(rmse, label  = "Table ?")
+knitr::kable(metrics, caption = "Prediction Metrics of LASSO Models")
 ```
 
 # Environmental Factors of Heat Exposure Indexes
@@ -244,7 +258,7 @@ hei <- heat_full %>%
   select(P_TREECOVER:HEI, geometry)
 ```
 
-```{r, echo=FALSE, out.height="60%", out.width="60%"}
+```{r, echo=FALSE, out.height="50%", out.width="50%"}
 hei_map <- hei %>%
 ggplot(aes(fill = HEI)) +
     geom_sf(aes(geometry = geometry), color = NA) +
@@ -273,10 +287,10 @@ ggplot(aes(fill = P_NOTREE)) +
     ggtitle("% No Tree") +
   theme_bw()
 
-gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2)
+gridExtra::grid.arrange(hei_map, air_map, imp_map, no_tree_map, ncol = 2, bottom = "Fig. 4")
 ```
 
-As shown by the maps above, there are fewer patterns in discrepancies between environmental factors and census tracts compared to that of the HSI data. Predominately Black census tracts are not disproportionately affected by any of the environmental variables (Fig. 7). These maps highlight areas such as downtown being at the highest risk of heat exposure. This makes intuitive sense as this is the city center of DC which includes high amounts of impervious surface and lacks cooling characteristics such as large parks or trees. When compared to areas of interest in the HSI section, census tracts that were poorer and majority minority are relatively similar to more White Census tracts. However, given the urban nature of the city, proportions of census tracts that are impervious surfaces and the lack of tree cover is a cause for concern given the socioeconomic patterns discussed previously. This creates the need for both environmental and social policy to adequately mitigate the risk of heat induced health incidents. 
+As shown by Fig. 4, there are fewer patterns in discrepancies between environmental factors and census tracts compared to that of the HSI data. Predominately Black census tracts are not disproportionately affected by any of the environmental variables (Fig. 5). These maps highlight areas such as downtown being at the highest risk of heat exposure. This makes intuitive sense as this is the city center of DC which includes high amounts of impervious surface and lacks cooling characteristics such as large parks or trees. When compared to areas of interest in the HSI section, census tracts that were poorer and majority minority are relatively similar to more White Census tracts. However, given the urban nature of the city, proportions of census tracts that are impervious surfaces and the lack of tree cover is a cause for concern given the socioeconomic patterns discussed previously. This creates the need for both environmental and social policy to adequately mitigate the risk of heat induced health incidents. 
 
 
 ```{r, echo=FALSE, out.height="60%", out.width="60%"}
@@ -300,57 +314,24 @@ imp_surf <- tree <- heat_full %>%
   ggplot(aes(majority_minority, P_IMPSURF)) +
   geom_boxplot()
 
-gridExtra::grid.arrange(tree, no_tree, temp, imp_surf, ncol = 2, right = "Fig. 8")
+gridExtra::grid.arrange(tree, no_tree, temp, imp_surf, ncol = 2, bottom = "Fig. 5")
 ```
 
 # Potential Policy Recommendations
 
 ## Environmental Policy Recomendations
 
-Policy recommendations revolving around mitigating mean air temperature of census tracts is centered around both impervious surfaces and tree canopy cover. Both of these factors are main contributors of heat retention due to the inability to deflect solar rays. Advancing infrastructure improvements such as cool roofs or cool pavements is key in reducing mean air temperature. Infrastructure projects such as these would need to prioritize census tracts that are majority minority or poor. These areas are at most need of infrastructure improvements already and would benefit far more than other tracts due to their increased sensitivity to heat. 
+Policy recommendations revolving around mitigating mean air temperature of census tracts is centered around both impervious surfaces and tree canopy cover. Both of these factors are main contributors of heat retention due to the inability to deflect solar rays. Advancing infrastructure improvements such as cool roofs or cool pavements is key in reducing mean air temperature. Infrastructure projects such as these would need to prioritize census tracts that are majority minority or poor. These areas are at most need of infrastructure improvements already and would benefit far more than other tracts due to their increased sensitivity to heat. Utilizing the predictive model could also help identify what census tracts should be prioritized in policy implementation.
 
 ## Social Policy Recomendations
 
-Policy recommendations relating to socioeconomic factors must center around enabling individuals in census tracts with high HSI metrics to be able to adapt and cope to instances of extreme heat. One clear avenue is to strengthen DC's Heat Emergency Plan (HEP) which opens resources when temperature exceed 95 degrees Fahrenheit. These resources are deemed cooling centers and range from pools, libraries, shelters, etc. located across the city (Appendix 2). However, the city must be able to give clear and concise information regarding where these centers are located and the hours they are open. Furthermore, the city must be able to offer more cooling centers that are accessible during non-business hours. As of right now, the city only advertises four options that are open 24/7 in cases of extreme heat. While temperatures do decrease during the night hours, individuals with low heat tolerance are still at adverse risk of heat induced illness Opening more accessible cooling centers in census tracts with high HSI will drastically reduce the possibility of heat induced health incidents.    
+Policy recommendations relating to socioeconomic factors must center around enabling individuals in census tracts with high HSI metrics to be able to adapt and cope to instances of extreme heat. One clear avenue is to strengthen DC's Heat Emergency Plan (HEP) which opens resources when temperature exceed 95 degrees Fahrenheit. These resources are deemed cooling centers and range from pools, libraries, shelters, etc. located across the city (Appendix Fig. 2). However, the city must be able to give clear and concise information regarding where these centers are located and the hours they are open. Furthermore, the city must be able to offer more cooling centers that are accessible during non-business hours. As of right now, the city only advertises four options that are open 24/7 in cases of extreme heat. While temperatures do decrease during the night hours, individuals with low heat tolerance are still at adverse risk of heat induced illness Opening more accessible cooling centers in census tracts with high HSI will drastically reduce the possibility of heat induced health incidents.    
 
-```{r, echo=FALSE, out.height="60%", out.width="60%"}
-cooling <- read_csv("../data/Cooling_Centers_-_District_of_Columbia.csv", show_col_types = F)
+# Conclusions and Future Steps
 
-cooling_clean <- cooling %>%
-  rename(lat = X,
-         lon = Y,
-         type = TYPE_,
-         hours = Hours3) %>%
-  select(lat, lon, type, hours)
-cooling_clean$type = as.factor(cooling_clean$type)
+The scope of the findings of this study lends itself to the first and third research questions posed at the beginning of this report. Best subsets and LASSO modeling using K-fold Cross Validation identified specific variables that are statistically significant in predicting a census tracts HSI level. From this modeling, and exploratory data analysis, it was found that specific census tracts with higher proportions of socioeconomic groups such as people of color and poverty were more likely to have harder times adapting and coping with extreme heat. Not only were race and poverty deemed to be statistically significant, but also health metrics such as asthma, obesity, and CHD. Through correlation tables and mapping visuals, it was also identified that there are clear patterns between some of these predictors such as census tracts with a higher proportion of minority populations are also more likely to have higher proportions of poverty. These findings highlight clear demographic discrepancies that allow us to view DC's Urban Heat Island Effect as an environmental justice issue. 
 
-cooling_type <- count(cooling_clean, type) %>%
-  arrange(desc(n))
-
-ggplot(cooling_type, aes(reorder(type, n, max), n)) +
-  geom_col() +
-  coord_flip() +
-  ggtitle("Counts of DC Cooling Centers") +
-  xlab("Cooling Center") +
-  ylab("Count") +
-  labs(caption = "Fig. ?") +
-  theme_bw()
-
-
-
-# full_hours <- cooling_clean %>%
-#   filter(str_detect(.$hours, "24"))
-# 
-# heat_full %>%
-#   filter(HSI > 0) %>%
-# ggplot(aes(fill = HSI)) +
-#     geom_sf(aes(geometry = geometry), color = NA) +
-#     # geom_point(data = full_hours, aes(lat, lon)) +
-#     scale_fill_viridis_c() +
-#     ggtitle("HSI") +
-#   theme_bw()
-```
-
+The study failed to adequately answer the second question of the report due the inability to create a generative model regarding the causes of heat exposure. This was a difficult task due definition of HEI, which is simply 50 percent mean air temperature, 25 percent percent-impervious surfaces, and 25 percent percent-no tree cover. This would require any meaningful model aimed at identifying the causes of heat to utilize mean air temperature as the response. In the case of this study, that would only leave percent tree cover, percent no tree cover, and percent impervious surfaces as potential predictor variables. The small quantity of variables and the inverse relationship between percent tree cover and percent no tree cover drastically reduced the possibility of any meaningful model being created. Future analysis for this research question needs to be centered around finding statistically significant environmental variables that explain the causes of extreme heat. Further data is needed to offer any sound conclusions to this question.     
 
 \newpage
 
@@ -359,13 +340,24 @@ ggplot(cooling_type, aes(reorder(type, n, max), n)) +
 cor_table <- hsi_model %>%
   na.omit() %>%
   cor() %>%
-  round(digits = 3)
+  round(digits = 2)
+colnames(cor_table) <- c(	"P_POC",	"P_CHI",	"P_ELD",	"P_POV",	"P_DIS",	"P_LIM",	"ASTHMA",	"CHD",	"OBESE",	"HSI",	"P_TREE",	"P_NOTREE",	"P_IMPSURF",	"AIRTEMP")
+rownames(cor_table) <- c(	"P_POC",	"P_CHI",	"P_ELD",	"P_POV",	"P_DIS",	"P_LIM",	"ASTHMA",	"CHD",	"OBESE",	"HSI",	"P_TREE",	"P_NOTREE",	"P_IMPSURF",	"AIRTEMP")
 
-knitr::kable(cor_table, caption = "Correlation table of HSI variables")%>%
-  kableExtra::kable_styling(latex_options = "HOLD_position")
+knitr::kable(cor_table, longtable = F, caption = "Correlation table of HSI variables") %>%
+  kableExtra::kable_styling(font_size = 4, latex_options = "hold_position")
 ```
 
-```{r, echo=FALSE, out.height="60%", out.width="60%"}
+```{r, echo=FALSE, out.height="80%", out.width="80%"}
+cooling <- read_csv("../data/Cooling_Centers_-_District_of_Columbia.csv", show_col_types = F)
+cooling_clean <- cooling %>%
+  rename(lat = X,
+         lon = Y,
+         type = TYPE_,
+         hours = Hours3) %>%
+  select(lat, lon, type, hours)
+cooling_clean$type = as.factor(cooling_clean$type)
+
 heat_full %>%
 ggplot() +
     geom_sf(aes(geometry = geometry), color = NA) +
@@ -374,11 +366,11 @@ ggplot() +
   ylab("") +
   ggtitle("DC Cooling Centers") +
   theme_bw() +
-  labs(caption = "Appendix Fig. 1")
+  labs(caption = "Appendix Fig. 2")
 ```
 
 ```{r, echo=FALSE, out.height="60%", out.width="60%"}
-plot(cv.lasso.mod, sub = "Appendix Fig. 2: Lambda Values of K-Fold CV LASSO")
+plot(cv.lasso.mod, sub = "Appendix Fig. 3")
 ```
 
 
