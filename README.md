@@ -1,2 +1,4 @@
-# DC-UHIE
-Final Project for GOVT 670, Applied Political Data Science, analyzing causes of urban heat island effects and corresponding sociodemographic trends in DC  
+# DC Urban Heat Island Effect
+Final Project for GOVT 670: Applied Political Data Science.
+
+With the failure to mitigate the effects of climate change, this paper aims to identify communities in Washington, DC that are at-risk to urban heat island effects. The analysis conducted aims to locate specific census tracts that do not have the ability to adapt to instances of rising temperatures, and looks to find specific socio-economic patterns of these tracts.  Further analysis conducted attempts to find what urban environmental metrics are most correlated with increasing temperatures. These findings will help government officials identify the communities that are best helped with not only specific social policy implementations, but also environmental improvements that will coincide with each other to assist DC residents in coping with urban heat island effects.
